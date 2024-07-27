@@ -18,3 +18,5 @@ def test_no_number_provided():
     event = {}
     response = lambda_handler(event, None)
     assert response['message'] == 'No number provided'
+
+    
