@@ -1,0 +1,99 @@
+name: python-CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed_scripts: ${{ steps.changes.outputs.changed_scripts }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Filter changed scripts
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          list-files: json
+          filters: |
+            changed:
+              - '**/*.py'
+              - '**/requirements.txt'
+
+      - name: Extract changed files
+        id: changes
+        env:
+          changed: ${{ steps.filter.outputs.changed_files }}
+        run: |
+          echo "shell: $0"
+          echo "# Changed Files" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          changed_scripts="$( echo $changed | jq -r '.[]' | jq -s -R -c 'split("\n") | map(select(. != ""))' )"
+          echo "${changed_scripts}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "changed_scripts=${changed_scripts}" >> $GITHUB_OUTPUT
+
+
+  lint-and-test:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.changed_scripts != '[]'
+    strategy:
+      matrix:
+        changed_script: ${{ fromJSON(needs.detect-changes.outputs.changed_scripts) }}
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: ${{ !contains(matrix.changed_script, 'test_') }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12'  # 使用するPythonバージョン
+
+      - name: Install dependencies
+        if: ${{ !contains(matrix.changed_script, 'test_') }}
+        run: |
+          # 共通ライブラリのインストール
+          pip install -e ./common_lib
+
+          # 各Lambda関数フォルダの依存関係をインストール
+          cd $(dirname ${{ matrix.changed_script }})
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install lint-and-test tools 
+        run: |
+          pip install flake8 pytest black
+      
+      - name: Lint with flake8
+        if: ${{ !contains(matrix.changed_script, 'test_') }}
+        run: |
+          echo "shell: $0"
+          echo "# Format and Lint" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          #cd $(dirname ${{ matrix.changed_script }})
+          SCRIPT_DIR=$(echo ${{ matrix.changed_script }} | cut -d'/' -f1)
+          cd $SCRIPT_DIR
+          black . >> $GITHUB_STEP_SUMMARY
+          flake8 . >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Test with pytest
+        run: |
+          echo "shell: $0"
+          echo "# Format and Lint" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          SCRIPT_DIR=$(echo ${{ matrix.changed_script }} | cut -d'/' -f1)
+          cd $SCRIPT_DIR
+          pytest tests/*_ut.py  >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          
