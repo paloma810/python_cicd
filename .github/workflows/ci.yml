@@ -82,6 +82,7 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           #cd $(dirname ${{ matrix.changed_script }})
           SCRIPT_DIR=$(echo ${{ matrix.changed_script }} | cut -d'/' -f1)
+          echo $SCRIPT_DIR  >> $GITHUB_STEP_SUMMARY
           cd $SCRIPT_DIR
           black . >> $GITHUB_STEP_SUMMARY
           flake8 . >> $GITHUB_STEP_SUMMARY
@@ -90,10 +91,10 @@ jobs:
       - name: Test with pytest
         run: |
           echo "shell: $0"
-          echo "# Format and Lint" >> $GITHUB_STEP_SUMMARY
+          echo "# Test Result" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           SCRIPT_DIR=$(echo ${{ matrix.changed_script }} | cut -d'/' -f1)
+          echo $SCRIPT_DIR  >> $GITHUB_STEP_SUMMARY
           cd $SCRIPT_DIR
           pytest tests/*_ut.py  >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          
