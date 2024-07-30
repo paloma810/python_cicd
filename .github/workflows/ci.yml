@@ -81,7 +81,7 @@ jobs:
           echo "# Format and Lint" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           #cd $(dirname ${{ matrix.changed_script }})
-          SCRIPT_DIR=$(echo ${{ matrix.changed_script }} | cut -d'/' -f2)
+          SCRIPT_DIR=$(echo ${{ matrix.changed_script }} | cut -d'/' -f1 -f2)
           echo $SCRIPT_DIR  >> $GITHUB_STEP_SUMMARY
           cd $SCRIPT_DIR
           black . >> $GITHUB_STEP_SUMMARY
@@ -93,7 +93,7 @@ jobs:
           echo "shell: $0"
           echo "# Test Result" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          SCRIPT_DIR=$(echo ${{ matrix.changed_script }} | cut -d'/' -f2)
+          SCRIPT_DIR=$(echo ${{ matrix.changed_script }} | cut -d'/' -f1 -f2)
           echo $SCRIPT_DIR  >> $GITHUB_STEP_SUMMARY
           cd $SCRIPT_DIR
           pytest tests/*_ut.py  >> $GITHUB_STEP_SUMMARY
